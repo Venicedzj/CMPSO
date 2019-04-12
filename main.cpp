@@ -23,9 +23,10 @@ int na = 0;
 #define c3 4.0/3
 #define wMax 0.9			//maximum weights
 #define wMin 0.4			//minimum weights
-#define Tmax 60			//maximum iterations number
+#define Tmax 40				//maximum iterations number
 int T = 1;					//current iterations number
-#define t (double)T/Tmax	//evolution time
+//#define t (double)T/Tmax	//evolution time
+#define PI 3.14159265358979323846
 
 struct Archive {
 	vector<double> POS;
@@ -57,6 +58,7 @@ double GetMinFtns(int swarm_num);
 void print(vector<Archive> Arc, int size);
 double GetWeight();
 inline double random(double a, double b) { return ((double)rand() / RAND_MAX) * (b - a) + a; }
+inline int random(int a, int b) { return (rand() / RAND_MAX) * (b - a) + a; }
 vector<vector<Particle>> particles(OBJECTIVE_NUM, vector<Particle>(PARTICLE_NUM));
 vector<GBest> gBest(OBJECTIVE_NUM);
 vector<vector<Archive>> ptc_archives(OBJECTIVE_NUM, vector<Archive>(PARTICLE_NUM));
@@ -68,8 +70,8 @@ public:
 	int dimension;
 	vector<double> pos_max;
 	vector<double> pos_min;
-	double v_max;
-	double v_min;
+	vector<double> v_max;
+	vector<double> v_min;
 
 	Function() {}
 
@@ -77,12 +79,12 @@ public:
 		for (int m = 0; m < OBJECTIVE_NUM; ++m) {
 			for (auto& ptc : particles[m]) {
 				for (int i = 0; i < dimension; i++) {
-					ptc.V.push_back(random(v_min, v_max));
+					ptc.V.push_back(random(v_min[i], v_max[i]));
 					ptc.POS.push_back(random(pos_min[i], pos_max[i]));
 				}
-				ptc.pBest = ptc.POS;
 				ptc.fitness = CalFitness(ptc.POS);
-				ptc.pBest_ftns = CalFitness(ptc.pBest);
+				ptc.pBest = ptc.POS;
+				ptc.pBest_ftns = ptc.fitness;
 			}
 
 			int minmark = 0;
@@ -102,7 +104,7 @@ public:
 	void Nondominated_solution_determining(vector<Archive> S, vector<Archive>& R);
 	void Density_based_selection(vector<Archive>& R);
 	void update_V_POS(Particle &ptc, int swarm_num);
-	//virtual void InitParticle(vector<Particle> particles) = 0;
+
 	virtual vector<double> CalFitness(vector<double> pos) = 0;
 	~Function() {}
 };
@@ -113,16 +115,16 @@ public:
 	int dimension = 30;
 	vector<double> pos_max;
 	vector<double> pos_min;
-	double v_max;
-	double v_min;
+	vector<double> v_max;
+	vector<double> v_min;
 
 	ZDT1() {
 		for (int i = 0; i < dimension; ++i) {
-			pos_max.push_back(1);
-			pos_min.push_back(0);
+			pos_max.push_back(1.0);
+			pos_min.push_back(0.0);
+			v_max.push_back(0.2 * (pos_max[i] - pos_min[i]));
+			v_min.push_back(-1 * v_max[i]);
 		}
-		v_max = 0.2 * (pos_max[0] - pos_min[0]);
-		v_min = -1 * v_max;
 		Function::dimension = this->dimension;
 		Function::pos_max = this->pos_max;
 		Function::pos_min = this->pos_min;
@@ -137,37 +139,152 @@ public:
 		for (int i = 1; i < dimension; ++i) {
 			gx += pos[i];
 		}
-		gx = gx * 9 / (dimension - 1) + 1;
+		gx = 1.0 + gx * (9.0 / (dimension - 1));
 		double hx = 1 - sqrt(f[0] / gx);
 		f[1] = gx * hx;
 		return f;
 	}
 };
 
-//double(*wghtFunc[4])() = { LDW,ranW,ConcFDW,ConvFDW };
+class ZDT2 : public Function
+{
+public:
+	int dimension = 30;
+	vector<double> pos_max;
+	vector<double> pos_min;
+	vector<double> v_max;
+	vector<double> v_min;
+
+	ZDT2() {
+		for (int i = 0; i < dimension; ++i) {
+			pos_max.push_back(1.0);
+			pos_min.push_back(0.0);
+			v_max.push_back(0.2 * (pos_max[i] - pos_min[i]));
+			v_min.push_back(-1 * v_max[i]);
+		}
+		Function::dimension = this->dimension;
+		Function::pos_max = this->pos_max;
+		Function::pos_min = this->pos_min;
+		Function::v_max = this->v_max;
+		Function::v_min = this->v_min;
+	}
+
+	vector<double> CalFitness(vector<double> pos) {
+		vector<double> f(2);
+		f[0] = pos[0];
+		double gx = 0;
+		for (int i = 1; i < dimension; ++i) {
+			gx += pos[i];
+		}
+		gx = 1.0 + gx * (9.0 / (dimension - 1));
+		double hx = 1.0 - pow(f[0] / gx, 2);
+		f[1] = gx * hx;
+		return f;
+	}
+};
+
+class ZDT3 : public Function
+{
+public:
+	int dimension = 30;
+	vector<double> pos_max;
+	vector<double> pos_min;
+	vector<double> v_max;
+	vector<double> v_min;
+
+	ZDT3() {
+		for (int i = 0; i < dimension; ++i) {
+			pos_max.push_back(1.0);
+			pos_min.push_back(0.0);
+			v_max.push_back(0.2 * (pos_max[i] - pos_min[i]));
+			v_min.push_back(-1 * v_max[i]);
+		}
+		Function::dimension = this->dimension;
+		Function::pos_max = this->pos_max;
+		Function::pos_min = this->pos_min;
+		Function::v_max = this->v_max;
+		Function::v_min = this->v_min;
+	}
+
+	vector<double> CalFitness(vector<double> pos) {
+		vector<double> f(2);
+		f[0] = pos[0];
+		double gx = 0;
+		for (int i = 1; i < dimension; ++i) {
+			gx += pos[i];
+		}
+		gx = 1.0 + gx * (9.0 / (dimension - 1));
+		double hx = 1.0 - sqrt(f[0] / gx) - (f[0] / gx) * sin(10 * PI * f[0]);
+		f[1] = gx * hx;
+		return f;
+	}
+};
+
+class ZDT4 : public Function
+{
+public:
+	int dimension = 10;
+	vector<double> pos_max;
+	vector<double> pos_min;
+	vector<double> v_max;
+	vector<double> v_min;
+
+	ZDT4() {
+		for (int i = 0; i < dimension; ++i) {
+			if (i == 0) {
+				pos_max.push_back(1.0);
+				pos_min.push_back(0.0);
+			}
+			else {
+				pos_max.push_back(5.0);
+				pos_min.push_back(-5.0);
+			}
+			v_max.push_back(0.2 * (pos_max[i] - pos_min[i]));
+			v_min.push_back(-1 * v_max[i]);
+		}
+		Function::dimension = this->dimension;
+		Function::pos_max = this->pos_max;
+		Function::pos_min = this->pos_min;
+		Function::v_max = this->v_max;
+		Function::v_min = this->v_min;
+	}
+
+	vector<double> CalFitness(vector<double> pos) {
+		vector<double> f(2);
+		f[0] = pos[0];
+		double gx = 0;
+		for (int i = 1; i < dimension; ++i) {
+			gx = gx + (pow(pos[i], 2) - 10.0 * cos(4 * PI * pos[i]));
+		}
+		gx = 91.0 + gx;
+		double hx = 1.0 - sqrt(f[0] / gx);
+		f[1] = gx * hx;
+		return f;
+	}
+};
 
 int main() {
 	srand((int)time(0));
-	ZDT1 zdt1_func;
-	zdt1_func.InitParticle();
-	zdt1_func.UpdateArchive();
+	ZDT1 test_func;
+	test_func.InitParticle();
+	test_func.UpdateArchive();
 	while (T <= Tmax) {
 		for (int m = 0; m < OBJECTIVE_NUM; ++m) {
 			for (auto& ptc : particles[m]) {
 				if (na != 0) {
-					int select = (int)random(0, na - 1);
+					int select = random(0, na - 1);
 					ptc.ptc_arc = archives[select];
 				}
 				else {
 					int select = m;
 					while (select == m) {
-						select = (int)random(0, OBJECTIVE_NUM - 1);
+						select = random(0, OBJECTIVE_NUM - 1);
 					}
 					ptc.ptc_arc.POS = gBest[select].POS;
-					ptc.ptc_arc.fitness = zdt1_func.CalFitness(ptc.ptc_arc.POS);
+					ptc.ptc_arc.fitness = test_func.CalFitness(ptc.ptc_arc.POS);
 				}
-				zdt1_func.update_V_POS(ptc, m);
-				ptc.fitness = zdt1_func.CalFitness(ptc.POS);
+				test_func.update_V_POS(ptc, m);
+				ptc.fitness = test_func.CalFitness(ptc.POS);
 				if (ptc.fitness[m] < ptc.pBest_ftns[m]) {
 					ptc.pBest = ptc.POS;
 					ptc.pBest_ftns = ptc.fitness;
@@ -178,18 +295,19 @@ int main() {
 				}
 			}
 		}
-		OutFile << particles[0][0].pBest_ftns[0] << " " << particles[0][0].pBest_ftns[1] << endl;
-		/*for (auto i : gBest) OutFile << i.fitness << " ";
-		OutFile << endl;*/
-		/*for (auto i : particles)
-			for (auto j : i)
+		test_func.UpdateArchive();
+
+		cout << "------------" << T << "-------------" << endl;
+		for (auto i : gBest) {
+			cout << i.fitness << " ";
+		}
+		cout << endl;
+		/*for (auto i : particles) {
+			for (auto j : i) {
 				OutFile << j.fitness[0] << " " << j.fitness[1] << endl;
+			}
+		}
 		OutFile << endl;*/
-		/*for (auto i : particles)
-			for (auto j : i)
-				OutFile << j.pBest_ftns[0] << " " << j.pBest_ftns[1] << endl;
-		OutFile << endl;*/
-		zdt1_func.UpdateArchive();
 		T++;
 	}
 	
@@ -221,6 +339,7 @@ void Function::UpdateArchive() {
 	Nondominated_solution_determining(S, R);
 
 	int size = R.size();
+	//cout << size << endl;
 	if (size > NA) {
 		Density_based_selection(R);
 		na = NA;
@@ -234,15 +353,8 @@ void Function::UpdateArchive() {
 	for (int i = 0; i < na; ++i) {
 		archives[i].fitness = CalFitness(archives[i].POS);
 	}
-
-	//OutFile << "--------" << T << "--------" << endl;
-	/*for (auto i : S) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
-	OutFile << endl;
-	for(auto i : R) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
-	OutFile << endl;
-	for (int i = 0; i < na; ++i) OutFile << archives[i].fitness[0] << " " << archives[i].fitness[1] << endl;
-	OutFile << endl;*/
 }
+
 void Function::Elitist_learning_strategy() {
 	int size = na;
 	for (int i = 0; i < size; ++i) {
@@ -255,9 +367,10 @@ void Function::Elitist_learning_strategy() {
 		archives[i] = E;
 	}
 }
+
 double Gaussian(double mu, double sigma) {
 	const double epsilon = numeric_limits<double>::min();
-	const double two_pi = 2.0 * 3.14159265358979323846;
+	const double two_pi = 2.0 * PI;
 
 	static double z0, z1;
 	static bool generate;
@@ -273,13 +386,9 @@ double Gaussian(double mu, double sigma) {
 	z1 = sqrt(-2.0 * log(u1)) * sin(two_pi * u2);
 	return z0 * sigma + mu;
 }
+
 void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archive>& R) {
 	int size = S.size();
-	/*for (auto i : S) {
-		cout << i.fitness[0] << " " << i.fitness[1] << endl;
-	}
-	cout << endl;*/
-	//cout << size << " ";
 	for (int i = 0; i < size; ++i) {
 		bool flag = true;
 		for (int j = 0; j < size; ++j) {
@@ -290,39 +399,34 @@ void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archi
 		}
 		if (flag == true) R.push_back(S[i]);
 	}
-	/*for (auto i : S) {
-		bool flag = true;
-		for (auto j : S) {
-			if (j.POS != i.POS && dominates(j, i)) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag == true) R.push_back(i);
-	}*/
-	//cout << R.size() << endl;
 }
+
 bool dominates(Archive U, Archive W) {
 	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
 		if (U.fitness[i] > W.fitness[i]) return false;
 	}
 	return true;
 }
+
 void Function::Density_based_selection(vector<Archive> &R) {
 	int L = R.size();
 	vector<double> d(L);
 	for (int i = 0; i < L; ++i) d[i] = 0;
 	for (int m = 0; m < OBJECTIVE_NUM; ++m) {
+		double max_ftns = GetMaxFtns(m);
+		double min_ftns = GetMinFtns(m);
 		SortRwithObjVal(R, m, d);
 		d[0] = DBL_MAX; d[L - 1] = DBL_MAX;
-		for (int i = 2; i < L - 1; ++i) {
-			d[i] += (R[i + 1].fitness[m] - R[i - 1].fitness[m]) / (GetMaxFtns(m) - GetMinFtns(m));
+		for (int i = 1; i < L - 1; ++i) {
+			d[i] += (R[i + 1].fitness[m] - R[i - 1].fitness[m]) / (max_ftns - min_ftns);
 		}
 	}
 	SortRwithD(R, d);
+
 	for (int i = 0; i < NA; ++i)
 		archives[i] = R[i];
 }
+
 void SortRwithObjVal(vector<Archive>& R, int obj_num, vector<double> &d) {
 	int size = R.size();
 	for (int i = size - 1; i > 0; --i) {
@@ -338,6 +442,7 @@ void SortRwithObjVal(vector<Archive>& R, int obj_num, vector<double> &d) {
 		}
 	}
 }
+
 double GetMaxFtns(int swarm_num) {
 	double temp = particles[swarm_num][0].fitness[swarm_num];
 	for (auto ptc : particles[swarm_num]) {
@@ -345,6 +450,7 @@ double GetMaxFtns(int swarm_num) {
 	}
 	return temp;
 }
+
 double GetMinFtns(int swarm_num) {
 	double temp = particles[swarm_num][0].fitness[swarm_num];
 	for (auto ptc : particles[swarm_num]) {
@@ -352,6 +458,7 @@ double GetMinFtns(int swarm_num) {
 	}
 	return temp;
 }
+
 void SortRwithD(vector<Archive>& R, vector<double>& d) {
 	int size = d.size();
 	for (int i = size - 1; i > 0; --i) {
@@ -372,15 +479,15 @@ void SortRwithD(vector<Archive>& R, vector<double>& d) {
 void Function::update_V_POS(Particle &ptc, int swarm_num) {
 	double w = GetWeight();
 	for (int i = 0; i < dimension; ++i) {
-		double r1 = random(0, 1), r2 = random(0, 1), r3 = random(0, 1);
+		double r1 = random(0.0, 1.0), r2 = random(0.0, 1.0), r3 = random(0.0, 1.0);
 		ptc.V[i] = w * ptc.V[i]
 			+ c1 * r1 * (ptc.pBest[i] - ptc.POS[i])
 			+ c2 * r2 * (gBest[swarm_num].POS[i] - ptc.POS[i])
 			+ c3 * r3 * (ptc.ptc_arc.POS[i] - ptc.POS[i]);
-		if (ptc.V[i] > v_max) ptc.V[i] = v_max;
-		if (ptc.V[i] < v_min) ptc.V[i] = v_min;
+		if (ptc.V[i] > v_max[i]) ptc.V[i] = v_max[i];
+		if (ptc.V[i] < v_min[i]) ptc.V[i] = v_min[i];
 		ptc.POS[i] = ptc.POS[i] + ptc.V[i];
-		if (ptc.POS[i] > pos_max[i]) ptc.POS[i] = pos_max[i];
+8		if (ptc.POS[i] > pos_max[i]) ptc.POS[i] = pos_max[i];
 		if (ptc.POS[i] < pos_min[i]) ptc.POS[i] = pos_min[i];
 	}
 }
@@ -390,20 +497,13 @@ double GetWeight() {
 	double w = k * (T - 1) + 0.9;
 	return w;
 }
+
 void print(vector<Archive> Arc, int size) {
 	for (int i = 0; i < size; ++i) {
-		cout << i + 1 << ": ";
+		cout << setiosflags(ios::left) << setw(3) << i + 1 << ": ";
 		for (int j = 0; j < OBJECTIVE_NUM; ++j) {
 			cout << setiosflags(ios::fixed) << setprecision(5) << setiosflags(ios::left) << setw(8) << Arc[i].fitness[j] << " ";
 		}
 		cout << endl;
 	}
-	/*cout << setiosflags(ios::left) << setw(3)
-		<< T << " gBest fitness value: " << getFitnessVal(gBest);
-	cout << " gBest value: ";
-	for (auto i : v) {
-		cout << setiosflags(ios::fixed) << setprecision(5) << setiosflags(ios::left) << setw(8)
-			<< i << " ";
-	}
-	cout << endl;*/
 }
