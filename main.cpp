@@ -5,8 +5,10 @@
 #include<iomanip>
 #include<cmath>
 #include<limits>
+#include<fstream>
 using namespace std;
 
+ofstream OutFile("data.txt");
 #define OBJECTIVE_NUM 2		//objectives' number
 #define PARTICLE_NUM 20		//particle's number
 #define NA 100
@@ -21,7 +23,7 @@ int na = 0;
 #define c3 4.0/3
 #define wMax 0.9			//maximum weights
 #define wMin 0.4			//minimum weights
-#define Tmax 30			//maximum iterations number
+#define Tmax 60			//maximum iterations number
 int T = 1;					//current iterations number
 #define t (double)T/Tmax	//evolution time
 
@@ -43,7 +45,7 @@ struct Particle
 struct GBest
 {
 	vector<double> POS;
-	vector<double> fitness;//double fitness;
+	double fitness;
 };
 
 double Gaussian(double mu, double sigma);
@@ -92,7 +94,7 @@ public:
 				}
 			}
 			gBest[m].POS = particles[m][minmark].pBest;
-			gBest[m].fitness = particles[m][minmark].pBest_ftns;
+			gBest[m].fitness = particles[m][minmark].pBest_ftns[m];
 		}
 	}
 	void UpdateArchive();
@@ -120,7 +122,7 @@ public:
 			pos_min.push_back(0);
 		}
 		v_max = 0.2 * (pos_max[0] - pos_min[0]);
-		v_min = -v_max;
+		v_min = -1 * v_max;
 		Function::dimension = this->dimension;
 		Function::pos_max = this->pos_max;
 		Function::pos_min = this->pos_min;
@@ -162,7 +164,7 @@ int main() {
 						select = (int)random(0, OBJECTIVE_NUM - 1);
 					}
 					ptc.ptc_arc.POS = gBest[select].POS;
-					ptc.ptc_arc.fitness = gBest[select].fitness;
+					ptc.ptc_arc.fitness = zdt1_func.CalFitness(ptc.ptc_arc.POS);
 				}
 				zdt1_func.update_V_POS(ptc, m);
 				ptc.fitness = zdt1_func.CalFitness(ptc.POS);
@@ -170,19 +172,29 @@ int main() {
 					ptc.pBest = ptc.POS;
 					ptc.pBest_ftns = ptc.fitness;
 				}
-				if (ptc.pBest_ftns[m] < gBest[m].fitness[m]) {
+				if (ptc.pBest_ftns[m] < gBest[m].fitness) {
 					gBest[m].POS = ptc.pBest;
-					gBest[m].fitness = ptc.pBest_ftns;
+					gBest[m].fitness = ptc.pBest_ftns[m];
 				}
 			}
 		}
+		OutFile << particles[0][0].pBest_ftns[0] << " " << particles[0][0].pBest_ftns[1] << endl;
+		/*for (auto i : gBest) OutFile << i.fitness << " ";
+		OutFile << endl;*/
+		/*for (auto i : particles)
+			for (auto j : i)
+				OutFile << j.fitness[0] << " " << j.fitness[1] << endl;
+		OutFile << endl;*/
+		/*for (auto i : particles)
+			for (auto j : i)
+				OutFile << j.pBest_ftns[0] << " " << j.pBest_ftns[1] << endl;
+		OutFile << endl;*/
 		zdt1_func.UpdateArchive();
 		T++;
 	}
-	/*for (auto i : particles)
-		for (auto j : i)
-			cout << j.fitness[0] << " " << j.fitness[1] << endl;*/
+	
 	print(archives, na);
+	OutFile.close();
 	return 0;
 }
 
@@ -219,10 +231,17 @@ void Function::UpdateArchive() {
 		}
 		na = R.size();
 	}
-
 	for (int i = 0; i < na; ++i) {
 		archives[i].fitness = CalFitness(archives[i].POS);
 	}
+
+	//OutFile << "--------" << T << "--------" << endl;
+	/*for (auto i : S) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
+	OutFile << endl;
+	for(auto i : R) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
+	OutFile << endl;
+	for (int i = 0; i < na; ++i) OutFile << archives[i].fitness[0] << " " << archives[i].fitness[1] << endl;
+	OutFile << endl;*/
 }
 void Function::Elitist_learning_strategy() {
 	int size = na;
