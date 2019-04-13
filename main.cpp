@@ -23,7 +23,7 @@ int na = 0;
 #define c3 4.0/3
 #define wMax 0.9			//maximum weights
 #define wMin 0.4			//minimum weights
-#define Tmax 40				//maximum iterations number
+#define Tmax 70				//maximum iterations number
 int T = 1;					//current iterations number
 //#define t (double)T/Tmax	//evolution time
 #define PI 3.14159265358979323846
@@ -58,7 +58,7 @@ double GetMinFtns(int swarm_num);
 void print(vector<Archive> Arc, int size);
 double GetWeight();
 inline double random(double a, double b) { return ((double)rand() / RAND_MAX) * (b - a) + a; }
-inline int random(int a, int b) { return (rand() / RAND_MAX) * (b - a) + a; }
+inline int random(int a, int b) { return (rand() % (b - a + 1)) + a; }
 vector<vector<Particle>> particles(OBJECTIVE_NUM, vector<Particle>(PARTICLE_NUM));
 vector<GBest> gBest(OBJECTIVE_NUM);
 vector<vector<Archive>> ptc_archives(OBJECTIVE_NUM, vector<Archive>(PARTICLE_NUM));
@@ -214,7 +214,7 @@ public:
 			gx += pos[i];
 		}
 		gx = 1.0 + gx * (9.0 / (dimension - 1));
-		double hx = 1.0 - sqrt(f[0] / gx) - (f[0] / gx) * sin(10 * PI * f[0]);
+		double hx = 1.0 - sqrt(f[0] / gx) - (f[0] / gx) * sin(10.0 * PI * f[0]);
 		f[1] = gx * hx;
 		return f;
 	}
@@ -254,7 +254,7 @@ public:
 		f[0] = pos[0];
 		double gx = 0;
 		for (int i = 1; i < dimension; ++i) {
-			gx = gx + (pow(pos[i], 2) - 10.0 * cos(4 * PI * pos[i]));
+			gx = gx + ((pos[i] * pos[i]) - (10.0 * cos(4.0 * PI * pos[i])));
 		}
 		gx = 91.0 + gx;
 		double hx = 1.0 - sqrt(f[0] / gx);
@@ -264,8 +264,8 @@ public:
 };
 
 int main() {
-	srand((int)time(0));
-	ZDT1 test_func;
+	srand((int)time(NULL));
+	ZDT3 test_func;
 	test_func.InitParticle();
 	test_func.UpdateArchive();
 	while (T <= Tmax) {
@@ -302,10 +302,14 @@ int main() {
 			cout << i.fitness << " ";
 		}
 		cout << endl;
-		/*for (auto i : particles) {
+		for (auto i : particles) {
 			for (auto j : i) {
 				OutFile << j.fitness[0] << " " << j.fitness[1] << endl;
 			}
+		}
+		OutFile << endl;/**/
+		/*for (auto j : particles[0]) {
+			OutFile << j.fitness[0] << " " << j.fitness[1] << endl;
 		}
 		OutFile << endl;*/
 		T++;
@@ -314,6 +318,23 @@ int main() {
 	print(archives, na);
 	OutFile.close();
 	return 0;
+}
+
+/*update particle's velocity, position and pBest*/
+void Function::update_V_POS(Particle& ptc, int swarm_num) {
+	double w = GetWeight();
+	for (int i = 0; i < dimension; ++i) {
+		double r1 = random(0.0, 1.0), r2 = random(0.0, 1.0), r3 = random(0.0, 1.0);
+		ptc.V[i] = w * ptc.V[i]
+			+ c1 * r1 * (ptc.pBest[i] - ptc.POS[i])
+			+ c2 * r2 * (gBest[swarm_num].POS[i] - ptc.POS[i])
+			+ c3 * r3 * (ptc.ptc_arc.POS[i] - ptc.POS[i]);
+		if (ptc.V[i] > v_max[i]) ptc.V[i] = v_max[i];
+		if (ptc.V[i] < v_min[i]) ptc.V[i] = v_min[i];
+		ptc.POS[i] = ptc.POS[i] + ptc.V[i];
+		if (ptc.POS[i] > pos_max[i]) ptc.POS[i] = pos_max[i];
+		if (ptc.POS[i] < pos_min[i]) ptc.POS[i] = pos_min[i];
+	}
 }
 
 void Function::UpdateArchive() {
@@ -338,8 +359,13 @@ void Function::UpdateArchive() {
 	vector<Archive> R;
 	Nondominated_solution_determining(S, R);
 
+	/*for (auto i : S) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
+	OutFile << endl;
+	for (auto i : R) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
+	OutFile<<11111<< " "<<11111 << endl;*/
+
 	int size = R.size();
-	//cout << size << endl;
+	cout << size << endl;
 	if (size > NA) {
 		Density_based_selection(R);
 		na = NA;
@@ -348,7 +374,7 @@ void Function::UpdateArchive() {
 		for (int i = 0; i < size; ++i) {
 			archives[i] = R[i];
 		}
-		na = R.size();
+		na = size;
 	}
 	for (int i = 0; i < na; ++i) {
 		archives[i].fitness = CalFitness(archives[i].POS);
@@ -363,6 +389,9 @@ void Function::Elitist_learning_strategy() {
 		E.POS[d] += (pos_max[d] - pos_min[d]) * Gaussian(0, 1);
 		if (E.POS[d] > pos_max[d]) E.POS[d] = pos_max[d];
 		if (E.POS[d] < pos_min[d]) E.POS[d] = pos_min[d];
+		E.POS[0] += (pos_max[0] - pos_min[0]) * Gaussian(0, 1);
+		if (E.POS[0] > pos_max[0]) E.POS[0] = pos_max[0];
+		if (E.POS[0] < pos_min[0]) E.POS[0] = pos_min[0];/**/
 		E.fitness = CalFitness(E.POS);
 		archives[i] = E;
 	}
@@ -397,13 +426,15 @@ void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archi
 				break;
 			}
 		}
-		if (flag == true) R.push_back(S[i]);
+		if (flag == true) 
+			R.push_back(S[i]);
 	}
 }
 
 bool dominates(Archive U, Archive W) {
 	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
-		if (U.fitness[i] > W.fitness[i]) return false;
+		if (U.fitness[i] > W.fitness[i]) 
+			return false;
 	}
 	return true;
 }
@@ -475,22 +506,6 @@ void SortRwithD(vector<Archive>& R, vector<double>& d) {
 	}
 }
 
-/*update particle's velocity, position and pBest*/
-void Function::update_V_POS(Particle &ptc, int swarm_num) {
-	double w = GetWeight();
-	for (int i = 0; i < dimension; ++i) {
-		double r1 = random(0.0, 1.0), r2 = random(0.0, 1.0), r3 = random(0.0, 1.0);
-		ptc.V[i] = w * ptc.V[i]
-			+ c1 * r1 * (ptc.pBest[i] - ptc.POS[i])
-			+ c2 * r2 * (gBest[swarm_num].POS[i] - ptc.POS[i])
-			+ c3 * r3 * (ptc.ptc_arc.POS[i] - ptc.POS[i]);
-		if (ptc.V[i] > v_max[i]) ptc.V[i] = v_max[i];
-		if (ptc.V[i] < v_min[i]) ptc.V[i] = v_min[i];
-		ptc.POS[i] = ptc.POS[i] + ptc.V[i];
-8		if (ptc.POS[i] > pos_max[i]) ptc.POS[i] = pos_max[i];
-		if (ptc.POS[i] < pos_min[i]) ptc.POS[i] = pos_min[i];
-	}
-}
 
 double GetWeight() {
 	double k = (wMin - wMax) / (Tmax - 1);
