@@ -23,10 +23,12 @@ int na = 0;
 #define c3 4.0/3.0
 #define wMax 0.9			//maximum weights
 #define wMin 0.4			//minimum weights
-#define Tmax 300				//maximum iterations number
+#define Tmax 60				//maximum iterations number
 int T = 1;					//current iterations number
 #define t (double)T/Tmax	//evolution time
 #define PI 3.14159265358979323846
+#define e 2.71828182845904523536
+
 
 struct Archive {
 	vector<double> POS;
@@ -222,6 +224,43 @@ public:
 	}
 };
 
+class ZDT6 : public Function {
+public:
+	int dimension = 10;
+	vector<double> pos_max;
+	vector<double> pos_min;
+	vector<double> v_max;
+	vector<double> v_min;
+
+	ZDT6() {
+		for (int i = 0; i < dimension; ++i) {
+			pos_max.push_back(1.0);
+			pos_min.push_back(0.0);
+			v_max.push_back(0.2 * (pos_max[i] - pos_min[i]));
+			v_min.push_back(-1 * v_max[i]);
+		}
+		Function::dimension = this->dimension;
+		Function::pos_max = this->pos_max;
+		Function::pos_min = this->pos_min;
+		Function::v_max = this->v_max;
+		Function::v_min = this->v_min;
+	}
+
+	vector<double> CalFitness(vector<double> pos) {
+		vector<double> f(2);
+		f[0] = 1.0 - pow(e, -4.0 * pos[0]) * pow(sin(6.0 * PI * pos[0]), 6);
+		double gx = 0;
+		for (int i = 1; i < dimension; ++i) {
+			gx = gx + pos[i];
+		}
+		gx = 1.0 + 9.0 * pow(gx / (dimension - 1), 0.25);
+		double hx = 1.0 - pow(f[0] / gx, 2);
+		f[1] = gx * hx;
+		return f;
+	}
+};
+
+
 class ZDT4 : public Function
 {
 public:
@@ -264,10 +303,9 @@ public:
 		return f;
 	}
 };
-
 int main() {
 	srand((int)time(NULL));
-	ZDT4 test_func;
+	ZDT6 test_func;
 	test_func.InitParticle();
 	test_func.UpdateArchive();
 	while (T <= Tmax) {
@@ -366,13 +404,6 @@ void Function::UpdateArchive() {
 	vector<Archive> R;
 	Nondominated_solution_determining(S, R);
 
-	/*OutFile << T<<" " <<0<< endl;
-	for (auto i : S) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
-	OutFile << endl;
-	for (auto i : R) OutFile << i.fitness[0] << " " << i.fitness[1] << endl;
-	OutFile << endl;
-	OutFile << endl;*/
-
 	int size = R.size();
 	cout << size << endl;
 	if (size > NA) {
@@ -380,9 +411,8 @@ void Function::UpdateArchive() {
 		na = NA;
 	}
 	else {
-		for (int i = 0; i < size; ++i) {
+		for (int i = 0; i < size; ++i)  
 			archives[i] = R[i];
-		}
 		na = size;
 	}
 }
@@ -531,8 +561,8 @@ void SortRwithD(vector<Archive>& R, vector<double>& d) {
 
 
 double GetWeight() {
-	//return wMax - (wMax - wMin) * t;
-	return (wMax - wMin) * (t - 1) * (t - 1) + wMin;
+	return wMax - (wMax - wMin) * t;
+	//return (wMax - wMin) * (t - 1) * (t - 1) + wMin;
 	//if (T < (Tmax - T) / 2) return wMax;
 	//else return wMin;
 }
