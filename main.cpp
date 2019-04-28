@@ -8,7 +8,6 @@
 #include<fstream>
 using namespace std;
 
-ofstream OutFile("data.txt");
 #define OBJECTIVE_NUM 2		//objectives' number
 #define PARTICLE_NUM 20		//particle's number
 #define NA 100
@@ -23,7 +22,7 @@ int na = 0;
 #define c3 4.0/3.0
 #define wMax 0.9			//maximum weights
 #define wMin 0.4			//minimum weights
-#define Tmax 60				//maximum iterations number
+#define Tmax 500			//maximum iterations number
 int T = 1;					//current iterations number
 #define t (double)T/Tmax	//evolution time
 #define PI 3.14159265358979323846
@@ -60,6 +59,7 @@ double GetMinFtns(int swarm_num);
 void print(vector<Archive> Arc, int size);
 double GetWeight();
 bool operator == (const Archive a, const Archive b);
+bool operator != (const Archive a, const Archive b);
 void ArchiveFilter(vector<Archive>& S);
 inline double random(double a, double b) { return ((double)rand() / RAND_MAX) * (b - a) + a; }
 inline int random(int a, int b) { return (rand() % (b - a + 1)) + a; }
@@ -306,7 +306,7 @@ public:
 
 int main() {
 	srand((int)time(NULL));
-	ZDT1 test_func;
+	ZDT4 test_func;
 	test_func.InitParticle();
 	test_func.UpdateArchive();
 	while (T <= Tmax) {
@@ -343,25 +343,10 @@ int main() {
 		}
 		cout << endl;
 
-		/*for (auto i : particles) {
-			for (auto j : i) {
-				OutFile << j.pBest_ftns[0] << " " << j.pBest_ftns[1] << endl;
-			}
-		}
-		OutFile << endl;
-		for (int i = 0; i < na; ++i) OutFile << archives[i].fitness[0] << " " << archives[i].fitness[1] << endl;
-		OutFile << endl << endl;*/
-		/*for (auto j : particles[0]) {
-			OutFile << j.fitness[0] << " " << j.fitness[1] << endl;
-		}
-		OutFile << endl;*/
-
 		test_func.UpdateArchive();
 		T++;
 	}
-	
 	print(archives, na);
-	OutFile.close();
 	return 0;
 }
 
@@ -401,7 +386,7 @@ void Function::UpdateArchive() {
 	for (int i = 0; i < na; ++i) {
 		S.push_back(new_archives[i]);
 	}
-	ArchiveFilter(S);
+	//ArchiveFilter(S);
 	vector<Archive> R;
 	Nondominated_solution_determining(S, R);
 
@@ -425,12 +410,72 @@ void Function::Elitist_learning_strategy() {
 		E.POS[d] += (pos_max[d] - pos_min[d]) * Gaussian(0, 1);
 		if (E.POS[d] > pos_max[d]) E.POS[d] = pos_max[d];
 		if (E.POS[d] < pos_min[d]) E.POS[d] = pos_min[d];
-		/*E.POS[0] += (pos_max[0] - pos_min[0]) * Gaussian(0, 1);
+		E.POS[0] += (pos_max[0] - pos_min[0]) * Gaussian(0, 1);
 		if (E.POS[0] > pos_max[0]) E.POS[0] = pos_max[0];
-		if (E.POS[0] < pos_min[0]) E.POS[0] = pos_min[0];*/
+		if (E.POS[0] < pos_min[0]) E.POS[0] = pos_min[0];/**/
 		E.fitness = CalFitness(E.POS);
 		archives[i] = E;
 	}
+}
+
+bool operator == (const Archive a, const Archive b) {
+	if (a.POS == b.POS) return true;
+	else return false;
+}
+
+bool operator != (const Archive a, const Archive b) {
+	if (a.POS != b.POS) return true;
+	else return false;
+}
+
+void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archive>& R) {
+	/*
+	int size = S.size();
+	for (int i = 0; i < size; ++i) {
+		bool flag = true;
+		for (int j = 0; j < size; ++j) {
+			if (j != i && dominates(S[j], S[i])) {
+				flag = false;
+				break;
+			}
+		}
+		if (flag == true) R.push_back(S[i]);
+	}
+	*/
+	for (auto i : S) {
+		bool flag = true;
+		for (auto j : S) {
+			if (j != i && dominates(j, i)) {
+				flag = false;
+				break;
+			}
+		}
+		if (flag == true) R.push_back(i);
+	}
+	
+}
+
+bool dominates(Archive U, Archive W) {
+	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
+		if (U.fitness[i] > W.fitness[i]) 
+			return false;
+	}
+	return true;
+}
+
+void ArchiveFilter(vector<Archive>& S) {
+	vector<Archive> temp;
+	for (auto i : S) {
+		bool flag = false;
+		for (auto j : temp) {
+			if (i == j) {
+				flag = true;
+				break;
+			}
+		}
+		if (flag == false) temp.push_back(i);
+	}
+	S = temp;
 }
 
 double Gaussian(double mu, double sigma) {
@@ -450,67 +495,6 @@ double Gaussian(double mu, double sigma) {
 	z0 = sqrt(-2.0 * log(u1)) * cos(two_pi * u2);
 	z1 = sqrt(-2.0 * log(u1)) * sin(two_pi * u2);
 	return z0 * sigma + mu;
-}
-
-bool operator == (const Archive a, const Archive b) {
-	if (a.POS == b.POS) return true;
-	else return false;
-}
-void ArchiveFilter(vector<Archive>& S) {
-	vector<Archive> temp;
-	for (auto i : S) {
-		bool flag = false;
-		for (auto j : temp) {
-			if (i == j) {
-				flag = true;
-				break;
-			}
-		}
-		if (flag == false) temp.push_back(i);
-	}
-	S = temp;
-}
-
-bool operator != (const Archive a, const Archive b) {
-	if (a.POS != b.POS) return true;
-	else return false;
-}
-/*
-void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archive>& R) {
-	for (auto i : S) {
-		bool flag = true;
-		for (auto j : S) {
-			if (j != i && dominates(j, i)) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag == true) R.push_back(i);
-	}
-}
-*/
-
-void Function::Nondominated_solution_determining(vector<Archive> S, vector<Archive>& R) {
-	int size = S.size();
-	for (int i = 0; i < size; ++i) {
-		bool flag = true;
-		for (int j = 0; j < size; ++j) {
-			if (j != i && dominates(S[j], S[i])) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag == true) 
-			R.push_back(S[i]);
-	}
-}
-
-bool dominates(Archive U, Archive W) {
-	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
-		if (U.fitness[i] > W.fitness[i]) 
-			return false;
-	}
-	return true;
 }
 
 void Function::Density_based_selection(vector<Archive> &R) {
@@ -584,8 +568,6 @@ void SortRwithD(vector<Archive>& R, vector<double>& d) {
 double GetWeight() {
 	return wMax - (wMax - wMin) * t;
 	//return (wMax - wMin) * (t - 1) * (t - 1) + wMin;
-	//if (T < (Tmax - T) / 2) return wMax;
-	//else return wMin;
 }
 
 void print(vector<Archive> Arc, int size) {
