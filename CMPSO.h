@@ -4,12 +4,12 @@
 #ifndef _CMPSO_H_
 #define _CMPSO_H_
 
-/* Parameter Definition */
+/* Parameter Statement */
 #define OBJECTIVE_NUM 2		//objectives' number
 #define PARTICLE_NUM 20		//particle's number
 #define DIMENSION 30		//spatial dimension
 #define NA 100				//maximum archive number
-#define Tmax 50				//maximum iterations number
+#define Tmax 100			//maximum iterations number
 #define t (double)T/Tmax	//evolution time
 #define c1 4.0/3.0			//individual cognitive coefficient
 #define c2 4.0/3.0			//social learning coefficient

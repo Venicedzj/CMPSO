@@ -4,8 +4,10 @@
 
 using namespace std;
 
-int na = 0;
-int T = 1;
+/* Parameter Definition */
+int na = 0;				//current archive number
+int T = 1;				//current iterations number
+
 /* Main Data Structure */
 vector<Bounds> obj_bunds(DIMENSION);	//boundary
 vector<vector<Particle>> Swarms(OBJECTIVE_NUM, vector<Particle>(PARTICLE_NUM));		//particle swarm

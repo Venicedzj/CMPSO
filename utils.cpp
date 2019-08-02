@@ -5,22 +5,26 @@
 
 using namespace std;
 
+/******************************************************/
+/* Initialize objective bounds and particles' message */
+/******************************************************/
 void Initialization() {
+	//Initialize objective bounds
 	for (int i = 0; i < DIMENSION; ++i) {
 		obj_bunds[i].pos_max = 1.0;
 		obj_bunds[i].pos_min = 0.0;
 		obj_bunds[i].v_max = 0.2 * (obj_bunds[i].pos_max - obj_bunds[i].pos_min);
 		obj_bunds[i].v_min = -1 * obj_bunds[i].v_max;
 	}
-
+	//Initialize particles' message
 	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
 		for (int j = 0; j < PARTICLE_NUM; ++j) {
 			for (int k = 0; k < DIMENSION; ++k) {
-				Swarms[i][j].pos.push_back(random(obj_bunds[k].pos_min, obj_bunds[k].pos_max));
-				Swarms[i][j].v.push_back(random(obj_bunds[k].v_min, obj_bunds[k].v_max));
+				Swarms[i][j].pos.push_back(random(obj_bunds[k].pos_min, obj_bunds[k].pos_max));	//Initialize position
+				Swarms[i][j].v.push_back(random(obj_bunds[k].v_min, obj_bunds[k].v_max));		//Initialize velocity
 			}
-			Swarms[i][j].fitness = CalFitness(Swarms[i][j].pos);
-			Swarms[i][j].pBest = Swarms[i][j].pos;
+			Swarms[i][j].fitness = CalFitness(Swarms[i][j].pos);	//Fitness evaluate
+			Swarms[i][j].pBest = Swarms[i][j].pos;					//Initialize pBest
 			Swarms[i][j].pBest_fitness = Swarms[i][j].fitness;
 		}
 
@@ -32,13 +36,19 @@ void Initialization() {
 				minmark = j;
 			}
 		}
-		gBest[i].pos = Swarms[i][minmark].pBest;
+		gBest[i].pos = Swarms[i][minmark].pBest;					//Initialize gBest
 		gBest[i].fitness = Swarms[i][minmark].pBest_fitness[i];
 	}
 }
 
+/***************************************************************************/
+/* Objective function implement here, input a particle's position, return  */
+/* m dimension vector f. A two dimension objective function ZDT1 is shown  */
+/* here, where f[0] means the first objective value, f[1] means the second */
+/* objective value.														   */
+/***************************************************************************/
 vector<double> CalFitness(vector<double> pos) {
-	vector<double> f(2);
+	vector<double> f(OBJECTIVE_NUM);
 	f[0] = pos[0];
 	double gx = 0;
 	for (int i = 1; i < DIMENSION; ++i) {
