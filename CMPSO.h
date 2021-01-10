@@ -9,7 +9,7 @@
 #define PARTICLE_NUM 20		//particle's number
 #define DIMENSION 30		//spatial dimension
 #define NA 100				//maximum archive number
-#define Tmax 100			//maximum iterations number
+#define Tmax 125			//maximum iterations number
 #define t (double)T/Tmax	//evolution time
 #define c1 4.0/3.0			//individual cognitive coefficient
 #define c2 4.0/3.0			//social learning coefficient
@@ -36,7 +36,7 @@ void Density_based_selection(vector<Archive>& R);
 void update_V_POS(Particle& ptc, int swarm_num);
 
 inline double random(double a, double b) { return ((double)rand() / RAND_MAX) * (b - a) + a; }
-inline int random(int a, int b) { return (rand() % (b - a + 1)) + a; }
+inline int random_int(int a, int b) { return (rand() % (b - a + 1)) + a; }
 void Initialization();
 vector<double> CalFitness(vector<double> pos);
 double Gaussian(double mu, double sigma);

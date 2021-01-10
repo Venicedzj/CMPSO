@@ -18,6 +18,7 @@ void Initialization() {
 	}
 	//Initialize particles' message
 	for (int i = 0; i < OBJECTIVE_NUM; ++i) {
+		gBest[i].fitness = DBL_MAX;
 		for (int j = 0; j < PARTICLE_NUM; ++j) {
 			for (int k = 0; k < DIMENSION; ++k) {
 				Swarms[i][j].pos.push_back(random(obj_bunds[k].pos_min, obj_bunds[k].pos_max));	//Initialize position
@@ -26,18 +27,12 @@ void Initialization() {
 			Swarms[i][j].fitness = CalFitness(Swarms[i][j].pos);	//Fitness evaluate
 			Swarms[i][j].pBest = Swarms[i][j].pos;					//Initialize pBest
 			Swarms[i][j].pBest_fitness = Swarms[i][j].fitness;
-		}
-
-		int minmark = 0;
-		double minfitness = Swarms[i][0].pBest_fitness[i];
-		for (int j = 0; j < PARTICLE_NUM; j++) {
-			if (Swarms[i][j].pBest_fitness[i] < minfitness) {
-				minfitness = Swarms[i][j].pBest_fitness[i];
-				minmark = j;
+			
+			if (Swarms[i][j].pBest_fitness[i] < gBest[i].fitness) {
+				gBest[i].pos = Swarms[i][j].pBest;					//Initialize gBest
+				gBest[i].fitness = Swarms[i][j].pBest_fitness[i];
 			}
 		}
-		gBest[i].pos = Swarms[i][minmark].pBest;					//Initialize gBest
-		gBest[i].fitness = Swarms[i][minmark].pBest_fitness[i];
 	}
 }
 
@@ -79,7 +74,7 @@ bool operator != (const Archive a, const Archive b) {
 }
 
 double GetMaxFtns(int swarm_num) {
-	double temp = Swarms[swarm_num][0].fitness[swarm_num];
+	double temp = DBL_MIN;
 	for (auto ptc : Swarms[swarm_num]) {
 		if (ptc.fitness[swarm_num] > temp) temp = ptc.fitness[swarm_num];
 	}
@@ -87,7 +82,7 @@ double GetMaxFtns(int swarm_num) {
 }
 
 double GetMinFtns(int swarm_num) {
-	double temp = Swarms[swarm_num][0].fitness[swarm_num];
+	double temp = DBL_MAX;
 	for (auto ptc : Swarms[swarm_num]) {
 		if (ptc.fitness[swarm_num] < temp) temp = ptc.fitness[swarm_num];
 	}
@@ -98,7 +93,7 @@ void SortRwithObjVal(vector<Archive>& R, int obj_num, vector<double>& d) {
 	int size = R.size();
 	for (int i = size - 1; i > 0; --i) {
 		for (int j = 0; j < i; j++) {
-			if (R[j].fitness[obj_num] > R[j + 1].fitness[obj_num]) {
+			if (R[j].fitness[obj_num] >= R[j + 1].fitness[obj_num]) {
 				swap(d[j], d[j + 1]);
 				swap(R[j], R[j + 1]);
 			}
@@ -110,7 +105,7 @@ void SortRwithD(vector<Archive>& R, vector<double>& d) {
 	int size = d.size();
 	for (int i = size - 1; i > 0; --i) {
 		for (int j = 0; j < i; j++) {
-			if (d[j] < d[j + 1]) {
+			if (d[j] <= d[j + 1]) {
 				swap(d[j], d[j + 1]);
 				swap(R[j], R[j + 1]);
 			}

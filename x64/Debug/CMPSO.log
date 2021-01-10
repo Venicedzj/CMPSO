@@ -1,0 +1,4 @@
+﻿  CMPSO.cpp
+C:\Users\o\source\repos\多种群协同进化的多目标优化算法\CMPSO.cpp(100): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+C:\Users\o\source\repos\多种群协同进化的多目标优化算法\CMPSO.cpp(157): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  CMPSO.vcxproj -> C:\Users\o\source\repos\多种群协同进化的多目标优化算法\x64\Debug\CMPSO.exe

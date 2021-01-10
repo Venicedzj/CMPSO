@@ -25,40 +25,29 @@ int main() {
 			for (auto& ptc : Swarms[m]) {
 				//if current archive is not empty
 				if (na != 0) {	
-					int select = random(0, na - 1);
+					int select = random_int(0, na - 1);
 					ptc.self_archive = archives[select];	//randomly select one
 				}
 				else {
 					int select = m;
 					while (select == m) {
-						select = random(0, OBJECTIVE_NUM - 1);	//chosen other objective's gBest
+						select = random_int(0, OBJECTIVE_NUM - 1);	//chosen other objective's gBest
 					}
 					ptc.self_archive.pos = gBest[select].pos;
-					ptc.self_archive.fitness = CalFitness(ptc.self_archive.pos);
+					ptc.self_archive.fitness[m] = gBest[select].fitness;
 				}
 
 				update_V_POS(ptc, m);	//particles update
 
-				ptc.fitness = CalFitness(ptc.pos);	//update fitness
-				//update pBest
-				if (ptc.fitness[m] < ptc.pBest_fitness[m]) {	
-					ptc.pBest = ptc.pos;
-					ptc.pBest_fitness = ptc.fitness;
-				}
-				//update gBest
-				if (ptc.pBest_fitness[m] < gBest[m].fitness) {
-					gBest[m].pos = ptc.pBest;
-					gBest[m].fitness = ptc.pBest_fitness[m];
-				}
 			}
 		}
 
 		//print gBest message
 		cout << "------------" << T << "-------------" << endl;
-		for (auto i : gBest) {
+		/*for (auto i : gBest) {
 			cout << i.fitness << " ";
 		}
-		cout << endl;
+		cout << endl;*/
 
 		UpdateArchive();
 		T++;
@@ -66,6 +55,14 @@ int main() {
 
 	cout << endl;
 	print(archives, na);	//print final non-dominated solutions
+/*
+	cout << endl << endl;
+	for (auto i : Swarms) {
+		for (auto j : i) {
+			cout << j.fitness[0] << " " << j.fitness[1] << endl;
+		}
+		cout << endl;
+	}*/
 	return 0;
 }
 
@@ -121,16 +118,16 @@ void UpdateArchive() {
 void Elitist_learning_strategy() {
 	for (int i = 0; i < na; ++i) {
 		Archive E = archives[i];
-		int d = random(0, DIMENSION - 1);
+		int d = random_int(0, DIMENSION - 1);
 
 		E.pos[d] += (obj_bunds[d].pos_max - obj_bunds[d].pos_min) * Gaussian(0, 1);
 		if (E.pos[d] > obj_bunds[d].pos_max) E.pos[d] = obj_bunds[d].pos_max;
 		if (E.pos[d] < obj_bunds[d].pos_min) E.pos[d] = obj_bunds[d].pos_min;
 
 		//addition
-		E.pos[0] += (obj_bunds[0].pos_max - obj_bunds[0].pos_min) * Gaussian(0, 1);
+		/*E.pos[0] += (obj_bunds[0].pos_max - obj_bunds[0].pos_min) * Gaussian(0, 1);
 		if (E.pos[0] > obj_bunds[0].pos_max) E.pos[0] = obj_bunds[0].pos_max;
-		if (E.pos[0] < obj_bunds[0].pos_min) E.pos[0] = obj_bunds[0].pos_min;
+		if (E.pos[0] < obj_bunds[0].pos_min) E.pos[0] = obj_bunds[0].pos_min;*/
 
 		E.fitness = CalFitness(E.pos);
 		archives[i] = E;
@@ -164,13 +161,14 @@ void Density_based_selection(vector<Archive>& R) {
 		double max_ftns = GetMaxFtns(m);
 		double min_ftns = GetMinFtns(m);
 		SortRwithObjVal(R, m, d);
+		//print(R, L);
 		d[0] = DBL_MAX; d[L - 1] = DBL_MAX;
 		for (int i = 1; i < L - 1; ++i) {
 			d[i] += (R[i + 1].fitness[m] - R[i - 1].fitness[m]) / (max_ftns - min_ftns);
 		}
 	}
 	SortRwithD(R, d);
-
+	//print(R, L);
 	for (int i = 0; i < NA; ++i)
 		archives[i] = R[i];
 }
@@ -195,5 +193,17 @@ void update_V_POS(Particle& ptc, int swarm_num) {
 		ptc.pos[i] = ptc.pos[i] + ptc.v[i];
 		if (ptc.pos[i] > obj_bunds[i].pos_max) ptc.pos[i] = obj_bunds[i].pos_max;
 		if (ptc.pos[i] < obj_bunds[i].pos_min) ptc.pos[i] = obj_bunds[i].pos_min;
+	}
+	ptc.fitness = CalFitness(ptc.pos);	//update fitness
+
+	//update pBest
+	if (ptc.fitness[swarm_num] < ptc.pBest_fitness[swarm_num]) {
+		ptc.pBest = ptc.pos;
+		ptc.pBest_fitness = ptc.fitness;
+	}
+	//update gBest
+	if (ptc.pBest_fitness[swarm_num] < gBest[swarm_num].fitness) {
+		gBest[swarm_num].pos = ptc.pBest;
+		gBest[swarm_num].fitness = ptc.pBest_fitness[swarm_num];
 	}
 }
